@@ -18,3 +18,12 @@ export interface Room {
   createdAt: Date;
   maxParticipants?: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  username: string;
+  message: string;
+  timestamp: Date;
+  avatar?: string;
+}

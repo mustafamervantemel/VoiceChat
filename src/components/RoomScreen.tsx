@@ -10,9 +10,12 @@ import {
   LogOut,
   Crown,
   UserCheck,
-  UserX
+  UserX,
+  MessageCircle,
+  Send,
+  X
 } from 'lucide-react';
-import { User, Room } from '../types';
+import { User, Room, ChatMessage } from '../types';
 
 interface RoomScreenProps {
   room: Room;
@@ -31,6 +34,9 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
   const [isDeafened, setIsDeafened] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
 
   const isHost = room.host === currentUser.id;
   const isSpeaker = room.speakers.includes(currentUser.id);
@@ -73,6 +79,56 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     }
   };
 
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      const message: ChatMessage = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        username: currentUser.username,
+        message: newMessage.trim(),
+        timestamp: new Date(),
+        avatar: currentUser.avatar
+      };
+      setChatMessages(prev => [...prev, message]);
+      setNewMessage('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Mock chat messages for demo
+  useEffect(() => {
+    const mockMessages: ChatMessage[] = [
+      {
+        id: '1',
+        userId: 'user1',
+        username: 'Ali Veli',
+        message: 'Merhaba herkese!',
+        timestamp: new Date(Date.now() - 300000),
+      },
+      {
+        id: '2',
+        userId: 'user2',
+        username: 'Ayşe K.',
+        message: 'Bu çok güzel bir konu 👍',
+        timestamp: new Date(Date.now() - 180000),
+      },
+      {
+        id: '3',
+        userId: currentUser.id,
+        username: currentUser.username,
+        message: 'Ben de katılıyorum',
+        timestamp: new Date(Date.now() - 60000),
+      }
+    ];
+    setChatMessages(mockMessages);
+  }, [currentUser.id, currentUser.username]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white">
       {/* Header */}
@@ -93,6 +149,13 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
             </div>
             
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowChat(!showChat)}
+                className="flex items-center space-x-2 bg-white bg-opacity-10 px-3 py-2 rounded-lg hover:bg-opacity-20 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-sm">Chat</span>
+              </button>
               <button
                 onClick={() => setShowParticipants(!showParticipants)}
                 className="flex items-center space-x-2 bg-white bg-opacity-10 px-3 py-2 rounded-lg hover:bg-opacity-20 transition-colors"
@@ -270,8 +333,69 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
           </div>
         </div>
 
+        {/* Chat Sidebar */}
+        {showChat && (
+          <div className="w-80 bg-black bg-opacity-30 backdrop-blur-lg border-l border-white border-opacity-10 flex flex-col">
+            <div className="p-4 border-b border-white border-opacity-10">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Canlı Chat</h3>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="p-1 hover:bg-white hover:bg-opacity-10 rounded transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatMessages.map((message) => (
+                <div key={message.id} className="flex space-x-2">
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-sm flex-shrink-0">
+                    {message.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <p className="text-sm font-medium text-purple-200 truncate">
+                        {message.username}
+                      </p>
+                      <p className="text-xs text-purple-300 flex-shrink-0">
+                        {message.timestamp.toLocaleTimeString('tr-TR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <p className="text-sm break-words">{message.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="p-4 border-t border-white border-opacity-10">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Mesaj yazın..."
+                  className="flex-1 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg px-3 py-2 text-sm placeholder-purple-300 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Participants Sidebar */}
-        {showParticipants && (
+        {showParticipants && !showChat && (
           <div className="w-80 bg-black bg-opacity-30 backdrop-blur-lg border-l border-white border-opacity-10 p-4">
             <h3 className="font-semibold mb-4">Katılımcılar</h3>
             
